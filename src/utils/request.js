@@ -34,8 +34,13 @@ import { ElMessage } from 'element-plus'
 import router from '@/router'
 import { useApp } from '@/pinia/modules/app'
 
+// const service = axios.create({
+//   baseURL: '/',
+//   timeout: 10000,
+//   withCredentials: true,
+// })
 const service = axios.create({
-  baseURL: '/',
+  baseURL: 'http://localhost:8501', // 后端服务的ip地址和端口号
   timeout: 10000,
   withCredentials: true,
 })
@@ -45,7 +50,8 @@ service.interceptors.request.use(
   config => {
     const { authorization } = useApp()
     if (authorization) {
-      config.headers.Authorization = `Bearer ${authorization.token}`
+      // config.headers.Authorization = `Bearer ${authorization.token}`
+      config.headers.token = `${authorization.token}`
     }
     return config
   },
@@ -59,7 +65,14 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   // 响应成功进入第1个函数，该函数的参数是响应对象
   response => {
-    return response.data
+    // service.interceptors.response.use第一个参数
+    const res = response.data
+    if (res.code == 208) {
+      const redirect = encodeURIComponent(window.location.href) // 当前地址栏的url
+      router.push(`/login?redirect=${redirect}`)
+      return Promise.reject(new Error(res.message || 'Error'))
+    }
+    return res
   },
   // 响应失败进入第2个函数，该函数的参数是错误对象
   async error => {
